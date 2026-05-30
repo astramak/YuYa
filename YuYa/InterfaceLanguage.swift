@@ -82,8 +82,8 @@ struct InterfaceText {
     var legalDisclaimerTitle: String { value(en: "Legal notice", ru: "Юридическое уведомление") }
     var legalDisclaimer: String {
         value(
-            en: "YuYa is not affiliated with, endorsed by, or sponsored by Yandex, Google, YouTube, Spotify, or other supported services. All trademarks belong to their owners. The app does not download, extract, or bypass protected audio streams; it only displays official web players.",
-            ru: "YuYa не связан, не одобрен и не спонсируется Яндексом, Google, YouTube, Spotify или другими поддерживаемыми сервисами. Все товарные знаки принадлежат их владельцам. Приложение не скачивает, не извлекает и не обходит защищенные аудиопотоки, а только отображает официальные веб-плееры."
+            en: "YuYa is not affiliated with, endorsed by, or sponsored by Yandex, Google, YouTube, or other supported services. All trademarks belong to their owners. The app does not download, extract, or bypass protected audio streams; it only displays official web players.",
+            ru: "YuYa не связан, не одобрен и не спонсируется Яндексом, Google, YouTube или другими поддерживаемыми сервисами. Все товарные знаки принадлежат их владельцам. Приложение не скачивает, не извлекает и не обходит защищенные аудиопотоки, а только отображает официальные веб-плееры."
         )
     }
     var invalidServiceInput: String {

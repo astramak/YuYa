@@ -117,10 +117,6 @@ final class ServiceWebViewModel: NSObject, ObservableObject {
     }
 
     func forcePausePlayback() {
-        if #available(macOS 12.0, *) {
-            webView.pauseAllMediaPlayback { }
-        }
-
         let script = """
         (() => {
           if (window.__yuyaBridge && typeof window.__yuyaBridge.forcePause === "function") {
@@ -353,7 +349,8 @@ final class ServiceWebViewModel: NSObject, ObservableObject {
             return true
         }
 
-        return false
+        rememberPopupHost(from: url)
+        return true
     }
 
     private func rememberPopupRedirectIfNeeded(to url: URL) {

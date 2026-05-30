@@ -9,7 +9,9 @@ import AppKit
 import SwiftUI
 
 enum TopChromeMetrics {
-    static let toolbarHeight: CGFloat = 30
+    static let toolbarHeight: CGFloat = 38
+    static let toolbarPillHeight: CGFloat = 32
+    static let toolbarVerticalOffset: CGFloat = 1
     static let toolbarTopPadding: CGFloat = 2
     static let trafficLightInset: CGFloat = 86
     static let webContentTopInset: CGFloat = 0
@@ -51,12 +53,127 @@ struct TopChromeNavigationToolbarItem: View {
     }
 }
 
+struct TopChromeMainToolbarItem: View {
+    @ObservedObject var appModel: AppModel
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 8) {
+            NavigationControls(
+                navigationState: appModel.selectedNavigationState,
+                goBack: appModel.goBack,
+                goForward: appModel.goForward,
+                openHome: { appModel.openHome(for: appModel.selectedServiceID) },
+                reload: appModel.reload,
+                strings: appModel.interfaceText
+            )
+
+            TrackIndicator(
+                snapshot: appModel.nowPlayingSnapshot,
+                service: nowPlayingService,
+                favicon: nowPlayingFavicon,
+                strings: appModel.interfaceText
+            )
+                .frame(width: 190, height: TopChromeMetrics.toolbarPillHeight)
+
+            ServiceSwitcher(
+                services: appModel.services,
+                selectedServiceID: selectedServiceIDBinding,
+                playingServiceID: appModel.playingServiceID,
+                faviconsByServiceID: appModel.faviconsByServiceID
+            )
+            .frame(maxWidth: .infinity, minHeight: TopChromeMetrics.toolbarPillHeight, maxHeight: TopChromeMetrics.toolbarPillHeight)
+        }
+        .offset(y: TopChromeMetrics.toolbarVerticalOffset)
+        .frame(maxWidth: .infinity, minHeight: TopChromeMetrics.toolbarHeight, maxHeight: TopChromeMetrics.toolbarHeight)
+    }
+
+    private var selectedServiceIDBinding: Binding<String> {
+        Binding(
+            get: { appModel.selectedServiceID },
+            set: { appModel.selectedServiceID = $0 }
+        )
+    }
+
+    private var nowPlayingServiceID: String {
+        appModel.nowPlayingSnapshot?.serviceID ?? appModel.playingServiceID ?? appModel.selectedServiceID
+    }
+
+    private var nowPlayingService: MusicService? {
+        appModel.service(withID: nowPlayingServiceID)
+    }
+
+    private var nowPlayingFavicon: NSImage? {
+        appModel.faviconsByServiceID[nowPlayingServiceID]
+    }
+}
+
 struct TopChromeTrackToolbarItem: View {
     @ObservedObject var appModel: AppModel
 
     var body: some View {
-        TrackIndicator(snapshot: appModel.nowPlayingSnapshot, strings: appModel.interfaceText)
+        TrackIndicator(
+            snapshot: appModel.nowPlayingSnapshot,
+            service: nowPlayingService,
+            favicon: nowPlayingFavicon,
+            strings: appModel.interfaceText
+        )
             .frame(width: 190, height: TopChromeMetrics.toolbarHeight)
+    }
+
+    private var nowPlayingServiceID: String {
+        appModel.nowPlayingSnapshot?.serviceID ?? appModel.playingServiceID ?? appModel.selectedServiceID
+    }
+
+    private var nowPlayingService: MusicService? {
+        appModel.service(withID: nowPlayingServiceID)
+    }
+
+    private var nowPlayingFavicon: NSImage? {
+        appModel.faviconsByServiceID[nowPlayingServiceID]
+    }
+}
+
+struct TopChromePlaybackToolbarItem: View {
+    @ObservedObject var appModel: AppModel
+
+    var body: some View {
+        HStack(spacing: 4) {
+            TrackIndicator(
+                snapshot: appModel.nowPlayingSnapshot,
+                service: nowPlayingService,
+                favicon: nowPlayingFavicon,
+                strings: appModel.interfaceText
+            )
+                .frame(width: 190, height: TopChromeMetrics.toolbarPillHeight)
+
+            ServiceSwitcher(
+                services: appModel.services,
+                selectedServiceID: selectedServiceIDBinding,
+                playingServiceID: appModel.playingServiceID,
+                faviconsByServiceID: appModel.faviconsByServiceID
+            )
+            .frame(maxWidth: .infinity, minHeight: TopChromeMetrics.toolbarPillHeight, maxHeight: TopChromeMetrics.toolbarPillHeight)
+        }
+        .frame(maxWidth: .infinity, minHeight: TopChromeMetrics.toolbarHeight, maxHeight: TopChromeMetrics.toolbarHeight)
+    }
+
+    private var selectedServiceIDBinding: Binding<String> {
+        Binding(
+            get: { appModel.selectedServiceID },
+            set: { appModel.selectedServiceID = $0 }
+        )
+    }
+
+    private var nowPlayingServiceID: String {
+        appModel.nowPlayingSnapshot?.serviceID ?? appModel.playingServiceID ?? appModel.selectedServiceID
+    }
+
+    private var nowPlayingService: MusicService? {
+        appModel.service(withID: nowPlayingServiceID)
+    }
+
+    private var nowPlayingFavicon: NSImage? {
+        appModel.faviconsByServiceID[nowPlayingServiceID]
     }
 }
 
@@ -70,7 +187,7 @@ struct TopChromeServicesToolbarItem: View {
             playingServiceID: appModel.playingServiceID,
             faviconsByServiceID: appModel.faviconsByServiceID
         )
-        .frame(width: 420, height: TopChromeMetrics.toolbarHeight)
+        .frame(maxWidth: .infinity, minHeight: TopChromeMetrics.toolbarHeight, maxHeight: TopChromeMetrics.toolbarHeight)
     }
 
     private var selectedServiceIDBinding: Binding<String> {
@@ -86,7 +203,13 @@ struct TopChromeSettingsToolbarItem: View {
     let openSettings: () -> Void
 
     var body: some View {
-        SettingsButton(openSettings: { openSettings() }, strings: appModel.interfaceText)
+        SettingsButton(
+            openSettings: {
+                appModel.selectedSettingsTab = .services
+                openSettings()
+            },
+            strings: appModel.interfaceText
+        )
             .frame(width: 34, height: TopChromeMetrics.toolbarHeight)
     }
 }
@@ -125,10 +248,19 @@ private struct ServiceSwitcher: View {
                     }
                 }
             }
-            .padding(.vertical, 3)
+            .padding(.vertical, 2)
+            .padding(.horizontal, 4)
         }
+        .frame(height: TopChromeMetrics.toolbarPillHeight)
         .scrollContentBackground(.hidden)
-        .background(Color.clear)
+        .background {
+            Capsule()
+                .fill(Color.white.opacity(0.075))
+        }
+        .overlay {
+            Capsule()
+                .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
+        }
     }
 }
 
@@ -318,6 +450,7 @@ private struct NavigationControls: View {
 
             ToolbarIconButton(systemName: "arrow.clockwise", help: strings.reload, action: reload)
         }
+        .frame(height: 34)
     }
 }
 
@@ -379,18 +512,13 @@ private struct SettingsButton: View {
 
 private struct TrackIndicator: View {
     let snapshot: PlaybackSnapshot?
+    let service: MusicService?
+    let favicon: NSImage?
     let strings: InterfaceText
 
     var body: some View {
         HStack(spacing: 5) {
-            ZStack {
-                Circle()
-                    .fill(snapshot?.isPlaying == true ? Color.green.opacity(0.22) : Color.white.opacity(0.12))
-                    .frame(width: 18, height: 18)
-                Image(systemName: iconName)
-                    .font(.system(size: 8, weight: .semibold))
-                    .foregroundStyle(snapshot?.isPlaying == true ? .green : .white.opacity(0.62))
-            }
+            indicatorIcon
 
             VStack(alignment: .leading, spacing: 0) {
                 Text(title)
@@ -406,7 +534,7 @@ private struct TrackIndicator: View {
         }
         .padding(.leading, 6)
         .padding(.trailing, 8)
-        .frame(height: 26)
+        .frame(height: TopChromeMetrics.toolbarPillHeight)
         .background(.white.opacity(0.09), in: Capsule())
         .overlay {
             Capsule()
@@ -415,8 +543,28 @@ private struct TrackIndicator: View {
         .accessibilityElement(children: .combine)
     }
 
+    @ViewBuilder
+    private var indicatorIcon: some View {
+        if snapshot?.isPlaying == true {
+            ServiceIcon(
+                image: favicon,
+                fallbackText: service?.displayName ?? snapshot?.serviceName ?? "",
+                size: 18
+            )
+        } else {
+            ZStack {
+                Circle()
+                    .fill(Color.white.opacity(0.12))
+                    .frame(width: 18, height: 18)
+                Image(systemName: iconName)
+                    .font(.system(size: 8, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.62))
+            }
+        }
+    }
+
     private var iconName: String {
-        snapshot?.isPlaying == true ? "music.note" : "music.note.list"
+        "music.note.list"
     }
 
     private var title: String {

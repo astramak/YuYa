@@ -11,7 +11,6 @@ import SwiftUI
 struct ServiceSettingsView: View {
     @EnvironmentObject private var appModel: AppModel
 
-    @State private var selectedSettingsTab = SettingsTab.services
     @State private var selectedServiceID: String?
     @State private var draftName = ""
     @State private var draftURL = ""
@@ -19,7 +18,7 @@ struct ServiceSettingsView: View {
     @State private var isShowingAddService = false
 
     var body: some View {
-        TabView(selection: $selectedSettingsTab) {
+        TabView(selection: $appModel.selectedSettingsTab) {
             servicesTab
                 .tabItem {
                     Label(strings.services, systemImage: "music.note.list")
@@ -386,7 +385,7 @@ struct ServiceSettingsView: View {
     }
 }
 
-private enum SettingsTab: Hashable {
+enum SettingsTab: Hashable {
     case services
     case settings
     case about

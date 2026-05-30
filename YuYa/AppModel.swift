@@ -39,6 +39,7 @@ final class AppModel: ObservableObject {
             }
         }
     }
+    @Published var selectedSettingsTab: SettingsTab = .services
 
     var selectedService: MusicService? {
         services.first { $0.id == selectedServiceID } ?? services.first
@@ -241,7 +242,7 @@ final class AppModel: ObservableObject {
         }
 
         services = MusicService.defaultServices
-        selectedServiceID = MusicService.yandexMusicID
+        selectedServiceID = MusicService.youtubeMusicID
         activePlaybackServiceID = nil
         playingServiceID = nil
         snapshotsByServiceID = [:]

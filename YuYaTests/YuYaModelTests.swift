@@ -46,6 +46,14 @@ final class YuYaModelTests: XCTestCase {
         XCTAssertEqual(MusicService.yandexMusic.fallbackFaviconURL, URL(string: "https://music.yandex.ru/favicon.ico"))
     }
 
+    func testDefaultServicesStartWithYouTubeThenYandex() {
+        XCTAssertEqual(MusicService.defaultServices.map(\.id), [
+            MusicService.youtubeMusicID,
+            MusicService.yandexMusicID
+        ])
+        XCTAssertEqual(AppState.empty.selectedServiceID, MusicService.youtubeMusicID)
+    }
+
     func testCustomServiceAcceptsOwnHostFavicon() {
         let service = MusicService.custom(
             displayName: "Example",

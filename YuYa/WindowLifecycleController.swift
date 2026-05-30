@@ -58,20 +58,16 @@ final class WindowLifecycleController: NSObject, NSWindowDelegate, NSToolbarDele
 
     func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
         [
-            TopChromeToolbarIdentifier.navigation,
-            TopChromeToolbarIdentifier.track,
-            TopChromeToolbarIdentifier.services,
-            .flexibleSpace,
+            TopChromeToolbarIdentifier.mainChrome,
+            TopChromeToolbarIdentifier.spacerBeforeSettings,
             TopChromeToolbarIdentifier.settings
         ]
     }
 
     func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
         [
-            TopChromeToolbarIdentifier.navigation,
-            TopChromeToolbarIdentifier.track,
-            TopChromeToolbarIdentifier.services,
-            .flexibleSpace,
+            TopChromeToolbarIdentifier.mainChrome,
+            TopChromeToolbarIdentifier.spacerBeforeSettings,
             TopChromeToolbarIdentifier.settings
         ]
     }
@@ -86,11 +82,24 @@ final class WindowLifecycleController: NSObject, NSWindowDelegate, NSToolbarDele
         }
 
         switch itemIdentifier {
+        case TopChromeToolbarIdentifier.spacerBeforeSettings:
+            return makeSpacerToolbarItem(identifier: itemIdentifier, width: 4)
+
+        case TopChromeToolbarIdentifier.mainChrome:
+            return makeHostedToolbarItem(
+                identifier: itemIdentifier,
+                label: "Controls",
+                width: 760,
+                minWidth: 520,
+                maxWidth: 10_000,
+                rootView: TopChromeMainToolbarItem(appModel: appModel)
+            )
+
         case TopChromeToolbarIdentifier.navigation:
             return makeHostedToolbarItem(
                 identifier: itemIdentifier,
                 label: "Navigation",
-                width: 124,
+                width: 136,
                 rootView: TopChromeNavigationToolbarItem(appModel: appModel)
             )
 
@@ -102,11 +111,23 @@ final class WindowLifecycleController: NSObject, NSWindowDelegate, NSToolbarDele
                 rootView: TopChromeTrackToolbarItem(appModel: appModel)
             )
 
+        case TopChromeToolbarIdentifier.playback:
+            return makeHostedToolbarItem(
+                identifier: itemIdentifier,
+                label: "Playback",
+                width: 620,
+                minWidth: 380,
+                maxWidth: 10_000,
+                rootView: TopChromePlaybackToolbarItem(appModel: appModel)
+            )
+
         case TopChromeToolbarIdentifier.services:
             return makeHostedToolbarItem(
                 identifier: itemIdentifier,
                 label: "Services",
                 width: 420,
+                minWidth: 180,
+                maxWidth: 10_000,
                 rootView: TopChromeServicesToolbarItem(appModel: appModel)
             )
 
@@ -141,7 +162,7 @@ final class WindowLifecycleController: NSObject, NSWindowDelegate, NSToolbarDele
         window.toolbar = toolbar
 
         if #available(macOS 11.0, *) {
-            window.toolbarStyle = .unifiedCompact
+            window.toolbarStyle = .unified
         }
     }
 
@@ -149,6 +170,8 @@ final class WindowLifecycleController: NSObject, NSWindowDelegate, NSToolbarDele
         identifier: NSToolbarItem.Identifier,
         label: String,
         width: CGFloat,
+        minWidth: CGFloat? = nil,
+        maxWidth: CGFloat? = nil,
         rootView: Content
     ) -> NSToolbarItem {
         let item = NSToolbarItem(itemIdentifier: identifier)
@@ -162,10 +185,29 @@ final class WindowLifecycleController: NSObject, NSWindowDelegate, NSToolbarDele
             width: width,
             height: TopChromeMetrics.toolbarHeight
         )
+        hostingView.autoresizingMask = [.width, .height]
         hostingView.wantsLayer = true
         hostingView.layer?.backgroundColor = NSColor.clear.cgColor
 
         item.view = hostingView
+        item.minSize = NSSize(width: minWidth ?? width, height: TopChromeMetrics.toolbarHeight)
+        item.maxSize = NSSize(width: maxWidth ?? width, height: TopChromeMetrics.toolbarHeight)
+        return item
+    }
+
+    private func makeSpacerToolbarItem(
+        identifier: NSToolbarItem.Identifier,
+        width: CGFloat
+    ) -> NSToolbarItem {
+        let item = NSToolbarItem(itemIdentifier: identifier)
+        item.view = NSView(
+            frame: NSRect(
+                x: 0,
+                y: 0,
+                width: width,
+                height: TopChromeMetrics.toolbarHeight
+            )
+        )
         item.minSize = NSSize(width: width, height: TopChromeMetrics.toolbarHeight)
         item.maxSize = NSSize(width: width, height: TopChromeMetrics.toolbarHeight)
         return item
@@ -174,8 +216,12 @@ final class WindowLifecycleController: NSObject, NSWindowDelegate, NSToolbarDele
 
 private enum TopChromeToolbarIdentifier {
     static let toolbar = NSToolbar.Identifier("YuYa.TopChromeToolbar")
+    static let mainChrome = NSToolbarItem.Identifier("YuYa.MainChrome")
     static let navigation = NSToolbarItem.Identifier("YuYa.Navigation")
+    static let playback = NSToolbarItem.Identifier("YuYa.Playback")
     static let track = NSToolbarItem.Identifier("YuYa.NowPlaying")
     static let services = NSToolbarItem.Identifier("YuYa.Services")
     static let settings = NSToolbarItem.Identifier("YuYa.Settings")
+    static let spacerAfterNavigation = NSToolbarItem.Identifier("YuYa.SpacerAfterNavigation")
+    static let spacerBeforeSettings = NSToolbarItem.Identifier("YuYa.SpacerBeforeSettings")
 }

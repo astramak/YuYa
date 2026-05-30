@@ -19,6 +19,7 @@ final class NowPlayingController {
     private var latestInfo: [String: Any] = [:]
     private var artworkCache: [URL: MPMediaItemArtwork] = [:]
     private var artworkTask: Task<Void, Never>?
+    private var artworkTaskURL: URL?
 
     init() {
         registerRemoteCommands()
@@ -27,11 +28,19 @@ final class NowPlayingController {
 
     func update(with snapshot: PlaybackSnapshot?) {
         latestSnapshot = snapshot
-        artworkTask?.cancel()
 
         guard let snapshot else {
+            artworkTask?.cancel()
+            artworkTask = nil
+            artworkTaskURL = nil
             clear()
             return
+        }
+
+        if artworkTaskURL != snapshot.artworkURL {
+            artworkTask?.cancel()
+            artworkTask = nil
+            artworkTaskURL = nil
         }
 
         latestInfo = makeNowPlayingInfo(from: snapshot, artwork: snapshot.artworkURL.flatMap { artworkCache[$0] })
@@ -39,7 +48,9 @@ final class NowPlayingController {
         updatePlaybackState(isPlaying: snapshot.isPlaying)
         updateRemoteCommandAvailability(snapshot.capabilities)
 
-        if let artworkURL = snapshot.artworkURL, artworkCache[artworkURL] == nil {
+        if let artworkURL = snapshot.artworkURL,
+           artworkCache[artworkURL] == nil,
+           artworkTaskURL != artworkURL {
             loadArtwork(from: artworkURL, for: snapshot)
         }
     }
@@ -47,6 +58,9 @@ final class NowPlayingController {
     func clear() {
         latestSnapshot = nil
         latestInfo = [:]
+        artworkTask?.cancel()
+        artworkTask = nil
+        artworkTaskURL = nil
         nowPlayingCenter.nowPlayingInfo = nil
         updatePlaybackState(isPlaying: false)
         updateRemoteCommandAvailability(.empty)
@@ -133,6 +147,7 @@ final class NowPlayingController {
     }
 
     private func loadArtwork(from url: URL, for snapshot: PlaybackSnapshot) {
+        artworkTaskURL = url
         artworkTask = Task { [weak self] in
             do {
                 let (data, _) = try await URLSession.shared.data(from: url)
@@ -154,12 +169,41 @@ final class NowPlayingController {
                     }
 
                     self.artworkCache[url] = artwork
+                    self.artworkTask = nil
+                    self.artworkTaskURL = nil
                     self.latestInfo = self.makeNowPlayingInfo(from: snapshot, artwork: artwork)
                     self.nowPlayingCenter.nowPlayingInfo = self.latestInfo
                 }
             } catch {
+                guard !Self.isCancellation(error) else {
+                    await MainActor.run {
+                        guard let self, self.artworkTaskURL == url else {
+                            return
+                        }
+                        self.artworkTask = nil
+                        self.artworkTaskURL = nil
+                    }
+                    return
+                }
+
                 NSLog("YuYa artwork load failed: \(error)")
+                await MainActor.run {
+                    guard let self, self.artworkTaskURL == url else {
+                        return
+                    }
+                    self.artworkTask = nil
+                    self.artworkTaskURL = nil
+                }
             }
         }
+    }
+
+    private nonisolated static func isCancellation(_ error: Error) -> Bool {
+        if error is CancellationError {
+            return true
+        }
+
+        let nsError = error as NSError
+        return nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled
     }
 }

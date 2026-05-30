@@ -16,7 +16,7 @@ struct AppState: Codable, Equatable {
 
     static let empty = AppState(
         services: MusicService.defaultServices,
-        selectedServiceID: MusicService.yandexMusicID,
+        selectedServiceID: MusicService.youtubeMusicID,
         lastURLsByService: [:],
         lastPlaybackSnapshot: nil,
         interfaceLanguage: .system
@@ -56,7 +56,7 @@ struct AppState: Codable, Equatable {
         if let selectedServiceID = try container.decodeIfPresent(String.self, forKey: .selectedServiceID) {
             self.selectedServiceID = selectedServiceID
         } else {
-            self.selectedServiceID = try container.decodeLegacySelectedServiceID(forKey: .selectedService) ?? MusicService.yandexMusicID
+            self.selectedServiceID = try container.decodeLegacySelectedServiceID(forKey: .selectedService) ?? MusicService.youtubeMusicID
         }
 
         lastPlaybackSnapshot = try container.decodeIfPresent(PlaybackSnapshot.self, forKey: .lastPlaybackSnapshot)

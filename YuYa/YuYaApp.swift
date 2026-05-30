@@ -11,6 +11,7 @@ import SwiftUI
 @main
 struct YuYaApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+    @Environment(\.openSettings) private var openSettings
     @StateObject private var appModel: AppModel
 
     init() {
@@ -20,11 +21,18 @@ struct YuYaApp: App {
     }
 
     var body: some Scene {
-        WindowGroup {
+        Window("YuYa", id: "main") {
             ContentView()
                 .environmentObject(appModel)
         }
         .commands {
+            CommandGroup(replacing: .appInfo) {
+                Button(appModel.interfaceText.about) {
+                    appModel.selectedSettingsTab = .about
+                    openSettings()
+                }
+            }
+
             CommandMenu(appModel.interfaceText.playerMenu) {
                 Button(appModel.interfaceText.reload) {
                     appModel.reload()
@@ -54,7 +62,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if !flag {
             appModel?.windowLifecycle.showMainWindow()
         }
-        return true
+        return false
     }
 
     func applicationWillTerminate(_ notification: Notification) {
