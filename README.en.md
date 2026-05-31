@@ -107,14 +107,14 @@ YuYa is intentionally small and native:
 
 The main state is owned by `AppModel`, while each service is represented by `ServiceWebViewModel`.
 
-## Build
+## Build and Distribution
 
 Requirements:
 
 - macOS
 - Xcode with Swift 5 support
 
-Build from the repository root:
+Debug build for development:
 
 ```sh
 xcodebuild build \
@@ -131,7 +131,78 @@ xcodebuild test \
   -destination 'platform=macOS'
 ```
 
-The app currently targets direct distribution outside the Mac App Store. Developer ID signing, notarization, and DMG packaging are release steps, not part of the debug build.
+Unsigned Release build for local testing:
+
+```sh
+xcodebuild build \
+  -scheme YuYa \
+  -configuration Release \
+  -destination 'platform=macOS' \
+  -derivedDataPath build/DerivedData \
+  CODE_SIGNING_ALLOWED=NO
+```
+
+The built app will be here:
+
+```sh
+build/DerivedData/Build/Products/Release/YuYa.app
+```
+
+This is useful for local testing, but it is not suitable for public distribution. macOS will warn users about an unsigned app.
+
+### Developer ID release
+
+Distribution outside the Mac App Store requires an Apple Developer account, a `Developer ID Application` certificate, and configured `notarytool` credentials.
+
+Archive:
+
+```sh
+xcodebuild archive \
+  -scheme YuYa \
+  -configuration Release \
+  -destination 'generic/platform=macOS' \
+  -archivePath build/YuYa.xcarchive \
+  DEVELOPMENT_TEAM=YOUR_TEAM_ID
+```
+
+Export signed `.app`:
+
+```sh
+xcodebuild -exportArchive \
+  -archivePath build/YuYa.xcarchive \
+  -exportPath build/export \
+  -exportOptionsPlist Packaging/ExportOptions.DeveloperID.plist
+```
+
+DMG:
+
+```sh
+hdiutil create \
+  -volname "YuYa" \
+  -srcfolder build/export/YuYa.app \
+  -ov \
+  -format UDZO \
+  build/YuYa.dmg
+```
+
+Notarization:
+
+```sh
+xcrun notarytool submit build/YuYa.dmg \
+  --keychain-profile "notarytool-profile" \
+  --wait
+
+xcrun stapler staple build/YuYa.dmg
+```
+
+Create the notarization profile if needed:
+
+```sh
+xcrun notarytool store-credentials "notarytool-profile" \
+  --apple-id "APPLE_ID_EMAIL" \
+  --team-id "YOUR_TEAM_ID" \
+  --password "APP_SPECIFIC_PASSWORD"
+```
 
 ## Notes
 
@@ -139,14 +210,6 @@ The app currently targets direct distribution outside the Mac App Store. Develop
 - Some login providers may still decide that embedded browsers are not allowed.
 - The app keeps playback alive when the main window is closed; quitting the app stops everything.
 - macOS media metadata depends on what the web player exposes through Media Session or standard HTML media elements.
-
-## Roadmap
-
-- Release DMG packaging.
-- Better service-specific adapters for unsupported controls.
-- Optional per-service user-agent settings.
-- More robust artwork and favicon handling.
-- Polished full-size screenshots and release assets.
 
 ## Legal
 

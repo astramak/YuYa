@@ -111,14 +111,14 @@ YuYa специально сделан небольшим и нативным:
 
 Основное состояние находится в `AppModel`, а каждый сервис представлен отдельным `ServiceWebViewModel`.
 
-## Сборка
+## Сборка и распространение
 
 Требования:
 
 - macOS
 - Xcode с поддержкой Swift 5
 
-Сборка из корня репозитория:
+Debug-сборка для разработки:
 
 ```sh
 xcodebuild build \
@@ -135,7 +135,78 @@ xcodebuild test \
   -destination 'platform=macOS'
 ```
 
-Сейчас приложение рассчитано на прямое распространение вне Mac App Store. Developer ID signing, notarization и сборка DMG - отдельные релизные шаги, они не нужны для debug-сборки.
+Release-сборка без подписи для локальной проверки:
+
+```sh
+xcodebuild build \
+  -scheme YuYa \
+  -configuration Release \
+  -destination 'platform=macOS' \
+  -derivedDataPath build/DerivedData \
+  CODE_SIGNING_ALLOWED=NO
+```
+
+Готовое приложение будет здесь:
+
+```sh
+build/DerivedData/Build/Products/Release/YuYa.app
+```
+
+Такая сборка подходит для локальной проверки, но не для публичного распространения: macOS будет ругаться на неподписанное приложение.
+
+### Developer ID release
+
+Для распространения вне Mac App Store нужен Apple Developer аккаунт, сертификат `Developer ID Application` и настроенный `notarytool`.
+
+Архив:
+
+```sh
+xcodebuild archive \
+  -scheme YuYa \
+  -configuration Release \
+  -destination 'generic/platform=macOS' \
+  -archivePath build/YuYa.xcarchive \
+  DEVELOPMENT_TEAM=YOUR_TEAM_ID
+```
+
+Экспорт подписанного `.app`:
+
+```sh
+xcodebuild -exportArchive \
+  -archivePath build/YuYa.xcarchive \
+  -exportPath build/export \
+  -exportOptionsPlist Packaging/ExportOptions.DeveloperID.plist
+```
+
+DMG:
+
+```sh
+hdiutil create \
+  -volname "YuYa" \
+  -srcfolder build/export/YuYa.app \
+  -ov \
+  -format UDZO \
+  build/YuYa.dmg
+```
+
+Notarization:
+
+```sh
+xcrun notarytool submit build/YuYa.dmg \
+  --keychain-profile "notarytool-profile" \
+  --wait
+
+xcrun stapler staple build/YuYa.dmg
+```
+
+Если профиль для notarization еще не создан:
+
+```sh
+xcrun notarytool store-credentials "notarytool-profile" \
+  --apple-id "APPLE_ID_EMAIL" \
+  --team-id "YOUR_TEAM_ID" \
+  --password "APP_SPECIFIC_PASSWORD"
+```
 
 ## Важные замечания
 
@@ -143,14 +214,6 @@ xcodebuild test \
 - Некоторые провайдеры авторизации могут блокировать встроенные браузеры.
 - Закрытие главного окна скрывает его и оставляет воспроизведение активным; полный выход из приложения останавливает все.
 - Метаданные в macOS зависят от того, что сам веб-плеер отдает через Media Session или стандартные HTML media elements.
-
-## Roadmap
-
-- Упаковка публичного DMG.
-- Более точные адаптеры для сервисов, где не работают стандартные команды.
-- Опциональные настройки user-agent для отдельных сервисов.
-- Более устойчивое получение обложек и favicon.
-- Полноразмерные скриншоты и релизные материалы.
 
 ## Юридический дисклеймер
 
