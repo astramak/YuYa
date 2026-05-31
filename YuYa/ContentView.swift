@@ -228,11 +228,68 @@ private struct TopChromeScrim: View {
     }
 }
 
+private struct TopChromePalette {
+    let primaryText: Color
+    let secondaryText: Color
+    let disabledText: Color
+    let capsuleFill: Color
+    let capsuleStroke: Color
+    let hoverFill: Color
+    let selectedFill: Color
+    let selectedStroke: Color
+    let trackFill: Color
+    let trackStroke: Color
+    let iconBackground: Color
+
+    init(colorScheme: ColorScheme) {
+        switch colorScheme {
+        case .light:
+            primaryText = Color.black.opacity(0.78)
+            secondaryText = Color.black.opacity(0.54)
+            disabledText = Color.black.opacity(0.22)
+            capsuleFill = Color.black.opacity(0.06)
+            capsuleStroke = Color.black.opacity(0.10)
+            hoverFill = Color.black.opacity(0.10)
+            selectedFill = Color.black.opacity(0.12)
+            selectedStroke = Color.black.opacity(0.16)
+            trackFill = Color.black.opacity(0.08)
+            trackStroke = Color.black.opacity(0.14)
+            iconBackground = Color.black.opacity(0.10)
+        case .dark:
+            primaryText = Color.white.opacity(0.88)
+            secondaryText = Color.white.opacity(0.58)
+            disabledText = Color.white.opacity(0.34)
+            capsuleFill = Color.white.opacity(0.075)
+            capsuleStroke = Color.white.opacity(0.08)
+            hoverFill = Color.white.opacity(0.12)
+            selectedFill = Color.white.opacity(0.16)
+            selectedStroke = Color.white.opacity(0.16)
+            trackFill = Color.white.opacity(0.09)
+            trackStroke = Color.white.opacity(0.12)
+            iconBackground = Color.white.opacity(0.12)
+        @unknown default:
+            primaryText = Color.white.opacity(0.88)
+            secondaryText = Color.white.opacity(0.58)
+            disabledText = Color.white.opacity(0.34)
+            capsuleFill = Color.white.opacity(0.075)
+            capsuleStroke = Color.white.opacity(0.08)
+            hoverFill = Color.white.opacity(0.12)
+            selectedFill = Color.white.opacity(0.16)
+            selectedStroke = Color.white.opacity(0.16)
+            trackFill = Color.white.opacity(0.09)
+            trackStroke = Color.white.opacity(0.12)
+            iconBackground = Color.white.opacity(0.12)
+        }
+    }
+}
+
 private struct ServiceSwitcher: View {
     let services: [MusicService]
     @Binding var selectedServiceID: String
     let playingServiceID: String?
     let faviconsByServiceID: [String: NSImage]
+
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -255,12 +312,16 @@ private struct ServiceSwitcher: View {
         .scrollContentBackground(.hidden)
         .background {
             Capsule()
-                .fill(Color.white.opacity(0.075))
+                .fill(palette.capsuleFill)
         }
         .overlay {
             Capsule()
-                .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
+                .strokeBorder(palette.capsuleStroke, lineWidth: 1)
         }
+    }
+
+    private var palette: TopChromePalette {
+        TopChromePalette(colorScheme: colorScheme)
     }
 }
 
@@ -272,6 +333,7 @@ private struct ServiceTabButton: View {
     let action: () -> Void
 
     @State private var isHovered = false
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         Button(action: action) {
@@ -289,7 +351,7 @@ private struct ServiceTabButton: View {
 
                 Text(service.displayName)
                     .font(.system(size: 12, weight: isSelected ? .semibold : .medium))
-                    .foregroundStyle(isSelected || isPlaying ? .white : .white.opacity(0.58))
+                    .foregroundStyle(textColor)
                     .lineLimit(1)
             }
             .padding(.leading, 7)
@@ -300,16 +362,16 @@ private struct ServiceTabButton: View {
                     PlayingTabBackground(isSelected: isSelected)
                 } else if isSelected {
                     Capsule()
-                        .fill(.white.opacity(0.16))
+                        .fill(palette.selectedFill)
                 } else if isHovered {
                     Capsule()
-                        .fill(.white.opacity(0.08))
+                        .fill(palette.hoverFill)
                 }
             }
             .overlay {
                 if isSelected || isPlaying {
                     Capsule()
-                        .strokeBorder(.white.opacity(isPlaying ? 0.24 : 0.16), lineWidth: 1)
+                        .strokeBorder(isPlaying ? Color.white.opacity(0.24) : palette.selectedStroke, lineWidth: 1)
                 }
             }
             .contentShape(Capsule())
@@ -320,6 +382,18 @@ private struct ServiceTabButton: View {
         .animation(.easeInOut(duration: 0.16), value: isHovered)
         .animation(.easeInOut(duration: 0.16), value: isSelected)
         .animation(.easeInOut(duration: 0.16), value: isPlaying)
+    }
+
+    private var palette: TopChromePalette {
+        TopChromePalette(colorScheme: colorScheme)
+    }
+
+    private var textColor: Color {
+        if isPlaying {
+            return Color.white.opacity(0.94)
+        }
+
+        return isSelected ? palette.primaryText : palette.secondaryText
     }
 }
 
@@ -460,18 +534,19 @@ private struct ToolbarIconButton: View {
     let action: () -> Void
 
     @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.colorScheme) private var colorScheme
     @State private var isHovered = false
 
     var body: some View {
         Button(action: action) {
             Image(systemName: systemName)
                 .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(.white.opacity(isEnabled ? 0.82 : 0.34))
+                .foregroundStyle(isEnabled ? palette.primaryText : palette.disabledText)
                 .frame(width: 30, height: 30)
                 .background {
                     if isHovered && isEnabled {
                         Circle()
-                            .fill(.white.opacity(0.12))
+                            .fill(palette.hoverFill)
                     }
                 }
                 .contentShape(Circle())
@@ -481,24 +556,29 @@ private struct ToolbarIconButton: View {
         .onHover { isHovered = $0 }
         .animation(.easeInOut(duration: 0.14), value: isHovered)
     }
+
+    private var palette: TopChromePalette {
+        TopChromePalette(colorScheme: colorScheme)
+    }
 }
 
 private struct SettingsButton: View {
     let openSettings: () -> Void
     let strings: InterfaceText
 
+    @Environment(\.colorScheme) private var colorScheme
     @State private var isHovered = false
 
     var body: some View {
         Button(action: openSettings) {
             Image(systemName: "slider.horizontal.3")
                 .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.88))
+                .foregroundStyle(palette.primaryText)
                 .frame(width: 30, height: 30)
                 .background {
                     if isHovered {
                         Circle()
-                            .fill(.white.opacity(0.12))
+                            .fill(palette.hoverFill)
                     }
                 }
                 .contentShape(Circle())
@@ -508,6 +588,10 @@ private struct SettingsButton: View {
         .onHover { isHovered = $0 }
         .animation(.easeInOut(duration: 0.14), value: isHovered)
     }
+
+    private var palette: TopChromePalette {
+        TopChromePalette(colorScheme: colorScheme)
+    }
 }
 
 private struct TrackIndicator: View {
@@ -516,6 +600,8 @@ private struct TrackIndicator: View {
     let favicon: NSImage?
     let strings: InterfaceText
 
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
         HStack(spacing: 5) {
             indicatorIcon
@@ -523,11 +609,11 @@ private struct TrackIndicator: View {
             VStack(alignment: .leading, spacing: 0) {
                 Text(title)
                     .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.92))
+                    .foregroundStyle(palette.primaryText)
                     .lineLimit(1)
                 Text(subtitle)
                     .font(.system(size: 9))
-                    .foregroundStyle(.white.opacity(0.58))
+                    .foregroundStyle(palette.secondaryText)
                     .lineLimit(1)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -535,10 +621,10 @@ private struct TrackIndicator: View {
         .padding(.leading, 6)
         .padding(.trailing, 8)
         .frame(height: TopChromeMetrics.toolbarPillHeight)
-        .background(.white.opacity(0.09), in: Capsule())
+        .background(palette.trackFill, in: Capsule())
         .overlay {
             Capsule()
-                .strokeBorder(Color.white.opacity(0.12), lineWidth: 1)
+                .strokeBorder(palette.trackStroke, lineWidth: 1)
         }
         .accessibilityElement(children: .combine)
     }
@@ -554,13 +640,17 @@ private struct TrackIndicator: View {
         } else {
             ZStack {
                 Circle()
-                    .fill(Color.white.opacity(0.12))
+                    .fill(palette.iconBackground)
                     .frame(width: 18, height: 18)
                 Image(systemName: iconName)
                     .font(.system(size: 8, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.62))
+                    .foregroundStyle(palette.secondaryText)
             }
         }
+    }
+
+    private var palette: TopChromePalette {
+        TopChromePalette(colorScheme: colorScheme)
     }
 
     private var iconName: String {
